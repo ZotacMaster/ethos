@@ -12,6 +12,7 @@ Header{
 .title{
   color: white;
   text-style: bold;
+  
 }
 
 .sub_title{
