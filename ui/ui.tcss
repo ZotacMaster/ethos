@@ -1,1 +1,21 @@
+Header{
+  dock: top;
+  height: 1;
+  background: green;
+  color: white;
+}
+
+#hero{
+  padding: 3;
+}
+
+.title{
+  color: white;
+  text-style: bold;
+}
+
+.sub_title{
+  color: green;
+  text-style: italic;
+}
 
