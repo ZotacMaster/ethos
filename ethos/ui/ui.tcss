@@ -1,0 +1,74 @@
+Header{
+  dock: top;
+  height: 1;
+  background: green;
+  color: white;
+}
+
+Input{
+  margin: 3 3 0 3;
+  border: solid #262726;
+}
+
+Button{
+  height: 3;
+  width: auto;
+}
+
+#hero{
+  padding: 3;
+}
+
+#guitar{
+  padding: 3; 
+  height: 40%;
+  width: 50%;
+}
+
+.box{
+  height: 100%;
+}
+
+.title{
+  color: white;
+  padding: 3 3 0 3;
+}
+
+.sub_title{
+  color: green;
+  text-style: italic;
+  padding: 0 0 0 3;
+}
+
+.playlist{
+  padding: 0 3 0 0;
+}
+
+.playlist_title{
+  link-color: black;
+  link-background: green;
+  link-style: bold italic;
+  link-color-hover: green;
+  link-background-hover: black;
+  padding: 3 0 1 3;
+}
+
+.playlist_button{
+  margin: 0 3;
+  
+}
+
+#recents{
+  padding: 1 0 0 3;
+  height: 40%;
+}
+
+.recents_title{
+  color: green;
+}
+
+.player{
+  padding: 0 0 0 3;
+  content-align: center middle;
+  height: 40%;
+}
