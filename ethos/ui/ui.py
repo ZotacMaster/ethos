@@ -1,5 +1,5 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Static, Input, Button, Label
+from textual.widgets import Header, Footer, Static, Input, Button, Label, ListView, ListItem
 from textual.containers import Horizontal, Vertical, Container
 from textual.reactive import var
 from helper_functions import resolve_playlists, resolve_recents
@@ -11,13 +11,14 @@ class EthosMusicCLI(App):
 
     search = var("")
     queue = var([])
-    now_playing = var(None)
+    now_playing = var("")
     time_stamp = var(0)
+    player_paused = var(True)
 
     playlist_path = "../userfiles/playlists"
     recents_path = "../userfiles/recents.json"
     playlists = resolve_playlists(playlist_path)
-    recents = resolve_recents(recents_path)
+    recents = var(resolve_recents(recents_path))
     
     def compose(self) -> ComposeResult:
 
@@ -62,25 +63,45 @@ hjm         |)  |)   ,'|
  0' 0'"""
         #art - Guitar by Harry Mason
 
-        is_recent = "You have not played any song recently" if not self.recents else True
-        
+        player_symbols_playing = """                                                            
+    :*%+   =#%.   .+*= :**:    *%+.  :%#-         --. .-:   
+  =%@@@#:*@@@@:   -@@@ *@@*    @@@@#-=@@@@+.    .@@@@%@@@@. 
+:@@@@@@@@@@@@@:   -@@@ *@@*    @@@@@@@@@@@@@+   .@@@@@@@@@  
+ =%@@@@%*@@@@@:   -@@@ *@@*    @@@@@%#@@@@@*.     +@@@@@+   
+   :*@@#  =%@@:   -@@@ *@@*    @@@+. =@@#-          =#=     
+      -.    ::     -=: .==.    .:     -.                    
+"""
+        player_symbols_paused = """                 .-.                                        
+    :*%+   =#%.  %@@%+:        *%+.  :%#-         --. .-:   
+  =%@@@#:*@@@@:  %@@@@@@*-     @@@@#-=@@@@+.    .@@@@%@@@@. 
+:@@@@@@@@@@@@@:  %@@@@@@@@@#   @@@@@@@@@@@@@+   .@@@@@@@@@  
+ =%@@@@%*@@@@@:  %@@@@@@@%+:   @@@@@%#@@@@@*.     +@@@@@+   
+   :*@@#  =%@@:  %@@@@*-.      @@@+. =@@#-          =#=     
+      -.    ::   +#+:          .:     -.                    
+"""
+
         yield Horizontal(
             Vertical(
                 Static(branding, classes="title"),
                 Static(subtitle, classes="sub_title"),
                 Container(
                     Static("[@click='app.bell']Your playlists[/]", classes="playlist_title"),
-                    Button("Create Playlist [0]", variant='default', classes="playlist_button"),   
+                    ListView(classes="playlist_list") if self.playlists else Static("No playlists available", classes="playlist_list"),
+                    Static("[@click='app.create_playlist']Create Playlist [0][/]", classes="playlist_button"),
                 )
             ),
             Vertical(
                 Input(placeholder="Search music\t[s]", type="text", value=self.search, classes="search"),
                 Container(
                     Static("Recents", classes="recents_title"),
-                    Label(is_recent, classes="recents_body"),
+                    ListView(classes="recents_list"),
                     id="recents"
                 ),
-                Static("Player", classes="player")
+                Container(
+                    Static(f"Listening {self.now_playing}", classes="player_title"),
+                    Static(player_symbols_paused if self.player_paused else player_symbols_playing),
+                    id="player"
+                )
             ),
         )
 
@@ -89,6 +110,35 @@ hjm         |)  |)   ,'|
         self.sub_title = "music cli"
         self.screen.styles.background = "black"
         self.screen.styles.border = ("heavy", "green")
+
+        """Define the ui for playlists"""
+        playlists_list = self.query_one('.playlist_list', ListView)
+        try:
+            if self.playlists:
+                for playlist in self.playlists:
+                    """Extract playlist name from path"""
+                    import os
+                    playlist_name = os.path.splitext(os.path.basename(playlist))[0]
+                    playlists_list.append(ListItem(Label(f"[@click='app.show_playlist({playlist})']{playlist_name}[/]")))
+            
+        except:
+            playlists_list.append(ListItem(Label("Playlists not available")))
+        
+        """Define the ui for recents"""
+        list_view = self.query_one('.recents_list', ListView)
+        try:
+            if self.recents:
+                self.recents_generator = ((entry['song'], entry['artist']) for entry in self.recents)
+                for song, artist in self.recents_generator:
+                    """Generate the search term from recents list"""
+                    s = "song" + "-" + "artist"
+                    list_view.append(ListItem(Label(f"[@click='app.play_song({s})']{song} - {artist}[/]")))
+            else:
+                list_view.append(ListItem(Label("You have not played any song recently")))
+        except:
+            list_view.append(ListItem(Label("Recents not available")))
+
+
 
 if __name__ == "__main__":
     app = EthosMusicCLI()
