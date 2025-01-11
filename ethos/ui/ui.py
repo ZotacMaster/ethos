@@ -1,14 +1,19 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Static, Input, Button, Label, ListView, ListItem
+from textual.widgets import Header, Footer, Static, Input, Button, Label, ListView, ListItem, ProgressBar
 from textual.containers import Horizontal, Vertical, Container
 from textual.reactive import var
+from textual.timer import Timer
 from helper_functions import resolve_playlists, resolve_recents
 
 class EthosMusicCLI(App):
     """UI for ethos music player"""
 
     CSS_PATH = "./ui.tcss"
+    progress_time: Timer
+    """Timer for music progress"""
 
+
+    """Defining all reactive elements"""
     search = var("")
     queue = var([])
     now_playing = var("")
@@ -99,6 +104,7 @@ hjm         |)  |)   ,'|
                 ),
                 Container(
                     Static(f"Listening {self.now_playing}", classes="player_title"),
+                    ProgressBar(),
                     Static(player_symbols_paused if self.player_paused else player_symbols_playing),
                     id="player"
                 )
@@ -137,6 +143,17 @@ hjm         |)  |)   ,'|
                 list_view.append(ListItem(Label("You have not played any song recently")))
         except:
             list_view.append(ListItem(Label("Recents not available")))
+
+        self.progress_time = self.set_interval(1 / 10, self.make_progress, pause=True)
+
+    def make_progress(self) -> None:
+        """Update the music progress"""
+        self.query_one(ProgressBar).advance(1)
+
+    def action_start(self) -> None:
+        """Start the music"""
+        self.query_one(ProgressBar).update(total=100)
+        self.progress_time.resume()
 
 
 
