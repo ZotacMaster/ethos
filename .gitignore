@@ -46,6 +46,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 pytest-cache-files-hgpg68ht/*
+ethos/tests/pytest-cache-files-hgpg68ht
+./ethos/tests/pytest-cache-files-hgpg68ht
 cover/
 
 # Translations
