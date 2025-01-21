@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
+import logging
+logger = logging.getLogger(__name__)
 
 class SpotifyImporter:
     """
@@ -98,9 +100,9 @@ class SpotifyImporter:
 ## Temporary test ##
 ###################
 if __name__ == "__main__":
-    client_id = os.getenv("SPOTIPY_CLIENT_ID")
-    client_secret = os.getenv("SPOTIPY_CLIENT_SECRET")
-    redirect_uri = os.getenv("REDIRECT_URI")
+    client_id = os.getenv("SPOTIPY_CLIENT_ID") or "e904c35efb014b76bd8999a211e9b1e1"
+    client_secret = os.getenv("SPOTIPY_CLIENT_SECRET") or "af18ccf7adae4ea7b37ca635c4225928"
+    redirect_uri = os.getenv("REDIRECT_URI") or "http://localhost:3000/"
 
     importer = SpotifyImporter(client_id, client_secret, redirect_uri)
     playlists = importer.fetch_playlists()

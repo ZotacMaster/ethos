@@ -73,7 +73,7 @@ def test_player():
 
     # Test online playback
     print("\nTesting online playback...") # Took 4.40 sec.
-    query = "sky-fall"
+    query = str(input("Enter song name"))
     url = get_audio_url(query)
     if url:
         print(f"Playing {query}...")
@@ -81,9 +81,9 @@ def test_player():
         time.sleep(10)
 
         print("Testing volume controls...")
-        player.set_volume(50)
+        player.set_volume(20)
         time.sleep(5)
-        player.set_volume(100)
+        player.set_volume(50)
         time.sleep(2)
 
         print("Testing pause/resume...")
@@ -91,7 +91,7 @@ def test_player():
         time.sleep(2)
         player.resume()
 
-        time.sleep(150)        
+        time.sleep(10)        
         current_time = TrackInfo.get_current_time(player)
         progress = TrackInfo.get_progress(player)
 

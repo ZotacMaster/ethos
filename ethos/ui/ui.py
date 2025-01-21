@@ -3,7 +3,7 @@ from textual.widgets import Header, Footer, Static, Input, Button, Label, ListVi
 from textual.containers import Horizontal, Vertical, Container
 from textual.reactive import var
 from textual.timer import Timer
-from helper_functions import resolve_playlists, resolve_recents
+from ethos.tools import helper
 
 class EthosMusicCLI(App):
     """UI for ethos music player"""
@@ -19,12 +19,21 @@ class EthosMusicCLI(App):
     now_playing = var("")
     time_stamp = var(0)
     player_paused = var(True)
+    tracks = var([])
+    show_tracks = var(False)
+    playlist_to_show = ''
+
+    helper = helper.Format
 
     playlist_path = "../userfiles/playlists"
     recents_path = "../userfiles/recents.json"
-    playlists = resolve_playlists(playlist_path)
-    recents = var(resolve_recents(recents_path))
     
+    
+    playlists = helper.resolve_playlists(playlist_path)
+    recents = var(helper.resolve_recents(recents_path))
+
+    
+
     def compose(self) -> ComposeResult:
 
         """
@@ -68,21 +77,34 @@ hjm         |)  |)   ,'|
  0' 0'"""
         #art - Guitar by Harry Mason
 
-        player_symbols_playing = """                                                            
-    :*%+   =#%.   .+*= :**:    *%+.  :%#-         --. .-:   
-  =%@@@#:*@@@@:   -@@@ *@@*    @@@@#-=@@@@+.    .@@@@%@@@@. 
-:@@@@@@@@@@@@@:   -@@@ *@@*    @@@@@@@@@@@@@+   .@@@@@@@@@  
- =%@@@@%*@@@@@:   -@@@ *@@*    @@@@@%#@@@@@*.     +@@@@@+   
-   :*@@#  =%@@:   -@@@ *@@*    @@@+. =@@#-          =#=     
-      -.    ::     -=: .==.    .:     -.                    
+        player_symbols_playing = """
+                                                  
+    .=-   :=.   =+= :++.   ==   .=:               
+  -#@@% =%@@=   @@@ *@@-   @@@*:=@@%=        . .  
+.%@@@@@@@@@@=   @@@ *@@-   @@@@@@@@@@@+     -@@@= 
+ =%@@@@+@@@@=   @@@ *@@-   @@@@#*@@@@+.      :+:  
+   :*@#  -#@-   %@@ +@@:   @@+. -@#-              
+                                                  
+                                                  
+      ...         ....         :..           .:.  
 """
-        player_symbols_paused = """                 .-.                                        
-    :*%+   =#%.  %@@%+:        *%+.  :%#-         --. .-:   
-  =%@@@#:*@@@@:  %@@@@@@*-     @@@@#-=@@@@+.    .@@@@%@@@@. 
-:@@@@@@@@@@@@@:  %@@@@@@@@@#   @@@@@@@@@@@@@+   .@@@@@@@@@  
- =%@@@@%*@@@@@:  %@@@@@@@%+:   @@@@@%#@@@@@*.     +@@@@@+   
-   :*@@#  =%@@:  %@@@@*-.      @@@+. =@@#-          =#=     
-      -.    ::   +#+:          .:     -.                    
+
+        pause_button = "||"
+        fwd_button = "▷"
+        back_button = "◁"
+        rewind_left = "↻"
+        rewind_right = "↺"
+
+        player_symbols_paused = """
+                                                  
+    .=-   :=.  #%+:        ==   .=:               
+  -#@@% =%@@=  @@@@@*-.    @@@*:=@@%=        . .  
+.%@@@@@@@@@@=  @@@@@@@@%:  @@@@@@@@@@@+     -@@@= 
+ =%@@@@+@@@@=  @@@@@@%*-   @@@@#*@@@@+.      :+:  
+   :*@#  -#@-  @@@#=.      @@+. -@#-              
+               :-                                 
+                                                  
+      ...         ....         :..           .:.  
 """
 
         yield Horizontal(
@@ -92,6 +114,10 @@ hjm         |)  |)   ,'|
                 Container(
                     Static("[@click='app.bell']Your playlists[/]", classes="playlist_title"),
                     ListView(classes="playlist_list") if self.playlists else Static("No playlists available", classes="playlist_list"),
+                    Container(
+                        ListView() if self.show_tracks else Static(""),
+                        id="tracks_list"
+                    ),
                     Static("[@click='app.create_playlist']Create Playlist [0][/]", classes="playlist_button"),
                 )
             ),
@@ -105,7 +131,9 @@ hjm         |)  |)   ,'|
                 Container(
                     Static(f"Listening {self.now_playing}", classes="player_title"),
                     ProgressBar(),
-                    Static(player_symbols_paused if self.player_paused else player_symbols_playing),
+                    Static(
+                        "↻      ◁     ||     ▷       ↺"
+                    ),
                     id="player"
                 )
             ),
@@ -121,15 +149,29 @@ hjm         |)  |)   ,'|
         playlists_list = self.query_one('.playlist_list', ListView)
         try:
             if self.playlists:
+                import os
                 for playlist in self.playlists:
                     """Extract playlist name from path"""
-                    import os
                     playlist_name = os.path.splitext(os.path.basename(playlist))[0]
                     playlists_list.append(ListItem(Label(f"[@click='app.show_playlist({playlist})']{playlist_name}[/]")))
             
         except:
             playlists_list.append(ListItem(Label("Playlists not available")))
+
+
+        """Define the ui for displaying tracks"""
+        list_of_tracks = self.query_one('#tracks_list', Container)
+        try:
+            if self.tracks:
+                self.track = ((entry['song'], entry['artist']) for entry in self.tracks["tracks"])
+                for song, artist in self.track:
+                    s = f"{song}"+ "-" + f"{artist}"
+                    list_of_tracks.append(ListItem(Label(f"[@click='app.playsong({s})']{s}[/]")))
         
+        except:
+            pass
+        
+
         """Define the ui for recents"""
         list_view = self.query_one('.recents_list', ListView)
         try:
@@ -146,9 +188,11 @@ hjm         |)  |)   ,'|
 
         self.progress_time = self.set_interval(1 / 10, self.make_progress, pause=True)
 
+
     def make_progress(self) -> None:
         """Update the music progress"""
         self.query_one(ProgressBar).advance(1)
+
 
     def action_start(self) -> None:
         """Start the music"""
@@ -156,6 +200,12 @@ hjm         |)  |)   ,'|
         self.progress_time.resume()
 
 
+    def action_show_playlist(self, playlist: str) -> None:
+        """Action to show tracks in a playlist"""
+        if not self.show_tracks:
+            self.show_tracks = var(True)
+        self.tracks = self.helper.fetch_tracks_from_playlist(f"{self.playlist_path}/{playlist}")
+        
 
 if __name__ == "__main__":
     app = EthosMusicCLI()

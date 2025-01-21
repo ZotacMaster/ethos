@@ -1,6 +1,14 @@
 from yt_dlp import YoutubeDL
 import os
 from shazamio import Shazam
+import base64
+from dotenv import load_dotenv
+from time import time
+import asyncio
+import httpx
+
+load_dotenv()
+
 # from spotipy import Spotify
 # from spotipy.oauth2 import SpotifyClientCredentials
 
@@ -122,3 +130,105 @@ async def get_song_metadata(query): # Took 12 sec approx in async environment
 
 
 # Normally took 4 sec for a online playback and 2 sec for a local playback.
+#print(get_song_metadata("after hours"))
+
+
+
+CLIENT_ID =  os.getenv("SPOTIFY_CLIENT_ID")
+CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+
+
+async def get_spotify_token(client_id, client_secret):
+    """
+    Fetches authorization token from spotify
+    
+    Args: client_id(str), client_secret(str)
+    
+    return: spotify authorization token
+    """
+
+    url = "https://accounts.spotify.com/api/token"
+    headers = {
+        "Authorization": "Basic " + base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
+    }
+    data = {"grant_type": "client_credentials"}
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, data=data)
+        response_data = response.json()
+
+    if response.status_code != 200:
+        raise Exception(f"Failed to get token: {response_data}")
+    
+    return response_data["access_token"]
+
+
+async def search_tracks_from_spotify(track_name, token):
+    """
+    Searches for a track in spotify and returns first 10 entries of search results
+    
+    Args: track_name(str), token(str)
+    
+    return: tracks(list)
+    """
+
+    url = "https://api.spotify.com/v1/search"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    params = {
+        "q": track_name,
+        "type": "track",
+        "limit": 10  
+    }
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers, params=params)
+        response_data = response.json()
+
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch tracks: {response_data}")
+    
+    return response_data["tracks"]["items"]
+
+
+async def fetch_tracks_list(track_name: str) -> list:
+    """
+    Returns a list of track name and artist name from tracks info
+
+    Args: track_name(str)
+
+    return: list
+    """
+
+    fetched_tracks = []
+    try:
+        
+        start_time = time()
+        token = await get_spotify_token(CLIENT_ID, CLIENT_SECRET)
+
+        
+        tracks = await search_tracks_from_spotify(track_name, token)
+        
+
+        if tracks:
+            print(f"\nTracks found for '{track_name}':")
+            for idx, track in enumerate(tracks, start=1):
+                track_info = f"{idx}. {track['name']} by {', '.join(artist['name'] for artist in track['artists'])}"
+                #print(track_info)
+                fetched_tracks.append(track_info)
+        else:
+            print(f"No tracks found for '{track_name}'.")
+    
+    except Exception as e:
+        print(f"Error: {e}")
+
+    finally:
+        end_time = time()
+        print("Time taken to get metadata = %.2f" % (end_time - start_time))
+        #print(fetched_tracks)
+        return fetched_tracks
+    
+
+#asyncio.run(fetch_tracks_list())
+
