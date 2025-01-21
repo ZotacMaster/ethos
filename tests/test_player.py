@@ -1,8 +1,8 @@
 import pytest
 import asyncio
-from ethos.utils import get_audio_url, fetch_tracks_list
-from ethos.config import get_music_folder
-from ethos.player import MusicPlayer
+from ..ethos.utils import get_audio_url, fetch_tracks_list
+from ..ethos.config import get_music_folder
+from ..ethos.player import MusicPlayer
 import time
 player = MusicPlayer()
 
