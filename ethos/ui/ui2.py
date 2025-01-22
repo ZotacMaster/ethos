@@ -1,7 +1,6 @@
-
+from textual import work
 from textual.app import App, ComposeResult
 from rich.align import Align
-from rich.console import Console
 from rich.layout import Layout
 from rich.live import Live
 from rich.text import Text
@@ -10,10 +9,11 @@ from textual.widget import Widget
 from textual.widgets import Input
 from textual.reactive import reactive
 from datetime import datetime
-from time import sleep
 
 from ethos.utils import get_audio_url, fetch_tracks_list
 from ethos.player import MusicPlayer
+from ethos.tools import helper
+from ethos.ui import assets
 
 class Clock:
     """Renders the time in the center of the screen."""
@@ -26,58 +26,25 @@ class Clock:
 class RichLayout(Widget):
     """Rich Widget for ethos UI"""
 
-
+    ASSETS = assets.UIAssets()
     layout = reactive(Layout)
     current_song = reactive("")
     is_player_playing = reactive(False)
-    button_symbols_playing = reactive("↻      ◁     ||     ▷       ↺")
-    button_symbols_paused = reactive("↻      ◁     ▷     ▷       ↺")
     logs = reactive("")
+    queue = reactive("")
+    dashboard_data = reactive("")
 
 
     def on_mount(self) -> None:
         """Initialize the layout when the widget is mounted"""
 
-        self.branding = """        __  .__                  
-  _____/  |_|  |__   ____  ______
-_/ __ \   __\  |  \ /  _ \/  ___/
-\  ___/|  | |   Y  (  <_> )___ \ 
- \___  >__| |___|  /\____/____  >
-     \/          \/           \/ """
-    
-    
-        self.cat_symbol = """                                                            
-                                                            
-                                                            
-                                    :=*=                    
-                                  .*#-.#=                   
-                          .-+*#%%%%%*+-+#                   
-                 .=+***++#@@@@@@@@@@@@@@%.                  
-                 %#:.:#@@@@@@@@@@@@@@@@@@%=                 
-                 *#.=%@@@@@@@@@@@@+=+#@@@@%+                
-                  #%@@@@@%#*#@@@@@%@@@@@@%%%=               
-                   %%%@@%++*%@%#%@@@@@@%%%%%=               
-                  .@@%%%@@@@@@#-#@@%%%%%%%@*                
-                   %@@@%%%@@@%#= .*%%%%%@@*.                
-                   =@@@@@%%%@@@#--%@@@@@#-                  
-                    =*%@@@@%%@@@@@@@@%%%.                   
-                      .:-*@@@@@@@@@@@@@@-                   
-              :**+       =@@@@@@%@@@@@@@-                   
-             *#.        .%@@@@@@@%%%@@@@:                   
-            =%         .#@@@@@@@@@@%%%@#                    
-            +%.       .#%@@@@@@@@@@@@%%*                    
-            .%#:     .*%@@@@@#@@%#@@@@@%=                   
-             .+%#++*%%@@@#@@@##@*%@@@#@@-                   
-                .----.-%@+#@@%=@+@@@*%%=                    
-                  ....:-*=:***===**+=*=:....                
-"""
-
         self.layout = Layout()
         self.layout.split(
             Layout(name="header", size=1),
             Layout(ratio=1, name="main"),
-            Layout(size=10, name="player"),
+            Layout(size=7, name="player"),
         )
+        self.layout.box = False
 
         self.layout["main"].split_row(Layout(name="side", ratio=2), Layout(name="cat", ratio=1))
         self.layout["side"].split(Layout(name="branding", size=7), Layout(name="playlists"))
@@ -91,7 +58,7 @@ _/ __ \   __\  |  \ /  _ \/  ___/
         self.layout["cat"].update(
             Align.center(
                 Text(
-                    self.cat_symbol,
+                    self.ASSETS.CAT_SYMBOL,
                     style="bold magenta",
                     justify="default"
                 ),
@@ -102,7 +69,7 @@ _/ __ \   __\  |  \ /  _ \/  ___/
         self.layout["branding"].update(
             Align.center(
                 Text(
-                    self.branding,
+                    self.ASSETS.BRANDING,
                     style="bold magenta",
                     justify="center"
                 ),
@@ -113,9 +80,10 @@ _/ __ \   __\  |  \ /  _ \/  ___/
         self.layout["playlists"].update(
             Panel(
             Align.center(
-                Text("Your Playlists"),
+                Text("Your Queue is empty"),
                 vertical="top",
             ),
+            box=False,
             border_style="blue"
             )
         )
@@ -124,7 +92,7 @@ _/ __ \   __\  |  \ /  _ \/  ___/
         self.layout["buttons"].update(
             Panel(
                 Align.center(
-                    Text(self.button_symbols_playing if self.is_player_playing else self.button_symbols_paused,
+                    Text(self.ASSETS.BUTTON_SYMBOLS["playing"] if self.is_player_playing else self.ASSETS.BUTTON_SYMBOLS["paused"],
                     style="bold green",
                     justify="center"),
                     vertical="middle"
@@ -137,51 +105,47 @@ _/ __ \   __\  |  \ /  _ \/  ___/
                     Text(f"{self.current_song}",
                          style="bold blue"),
                     vertical="middle"
-                )
+                ),
             )
         )
         self.layout["playlists"].update(
             Panel(
                 Align.center(
                     Text(
-                        self.logs,
+                        self.dashboard_data,
                         style="bold white",
                         justify="default"
                     ),
-                )
+                ),
+                border_style="none"
             )
         )
         
     def update_track(self, track_name: str) -> None:
-
+        """Update the current playing song"""
         self.current_song = track_name
         self.is_player_playing = True
         self.refresh()
     
 
     def update_playing_status(self) -> None:
-
+        """Update playing status of the player to render the controller buttons"""
         if self.is_player_playing:
             self.is_player_playing = False
         else:
             self.is_player_playing = True
-
         self.refresh()
 
-    def update_logs(self, message: str) -> None:
-        self.logs = self.logs + "\n" + message
-        self.refresh()
-    
 
-    def update_clock(self) -> None:    
-        with Live(self.layout, screen=True, redirect_stderr=False):
-            try:
-                while True:
-                    sleep(1)
-            except KeyboardInterrupt:
-                pass
-        
-
+    def update_dashboard(self, data: any) -> None:
+        """Dynamically update dashboard data based on user interactions"""
+        if type(data) == list:
+            self.dashboard_data = "\n[bold red]Search Results:[/bold red]\n\n"+"\n".join(data) + "\n[bold red]Type track number to play[/bold red]"
+            self.refresh()
+        if type(data) == str:
+            self.dashboard_data = data
+            self.refresh()
+                    
 
     def render(self) -> Layout:
         """Render the widget"""
@@ -194,15 +158,7 @@ _/ __ \   __\  |  \ /  _ \/  ___/
 class TextualApp(App):
     """Textual Application Class for ethos UI"""
 
-    CSS = """
-    #rich-layout-widget {
-        height: 100%;
-    }
-
-    Input {
-        dock: bottom;
-    }
-    """
+    CSS_PATH = "./styles.tcss"
 
     BINDINGS = [
         ("ctrl+c", "quit", "Quit"),
@@ -214,6 +170,9 @@ class TextualApp(App):
     ]
 
     player = MusicPlayer()
+    tracks_list = reactive([])
+    track_to_play = reactive("")
+    helper = helper.Format()
 
     def compose(self) -> ComposeResult:
         """Composer function for textual app"""
@@ -232,13 +191,24 @@ class TextualApp(App):
         """Handle input submission"""
 
         layout_widget = self.query_one(RichLayout)
-        tracks_list = await fetch_tracks_list(event.value)
-        track_name = tracks_list[0]
-        url = get_audio_url(track_name)
-        self.player.play(url)
-        layout_widget.update_logs(f"Playing {track_name}")
-        layout_widget.update_track(track_name)
-        
+        if event.value:
+            if event.value.startswith("/play"):
+                search_track = self.helper.parse_command(event.value)
+                self.tracks_list = await fetch_tracks_list(search_track)
+                if self.tracks_list:
+                    layout_widget.update_dashboard(self.tracks_list)
+                    self.update_input()
+
+            if event.value.isdigit() and self.tracks_list:
+                self.track_to_play = self.tracks_list[int(event.value)-1]
+                self.handle_play(self.track_to_play)
+                self.update_input()
+
+            if event.value.startswith("/volume"):
+                volume_to_be_set = self.helper.parse_command(event.value)
+                self.player.set_volume(volume_to_be_set)
+                self.update_input()
+
 
 
     def action_pause(self):
@@ -246,7 +216,6 @@ class TextualApp(App):
         layout_widget = self.query_one(RichLayout)
         self.player.pause()
         layout_widget.update_playing_status()
-        layout_widget.update_logs("player paused")
 
 
     def action_resume(self):
@@ -254,28 +223,34 @@ class TextualApp(App):
         layout_widget = self.query_one(RichLayout)
         self.player.resume()
         layout_widget.update_playing_status()
-        layout_widget.update_logs("player resumed")
 
     def action_volume_up(self):
         """Increase the volume by 5 levels"""
         current_volume = self.player.get_volume()
         self.player.set_volume(current_volume+5)
-        layout_widget = self.query_one(RichLayout)
-        layout_widget.update_logs(f"set volume {self.player.get_volume()}")
 
     def action_volume_down(self):
         """Decrease the volume by 5 levels"""
         current_volume = self.player.get_volume()
         self.player.set_volume(current_volume-5)
+
+    def handle_play(self, track_name: str):
+        """Function to handle the track playback"""
         layout_widget = self.query_one(RichLayout)
-        layout_widget.update_logs(f"set volume {self.player.get_volume()}")
+        url = get_audio_url(track_name+" official audio")
+        self.player.set_volume(50)
+        self.player.play(url)
+        layout_widget.update_track(track_name)
+
+    def update_input(self) -> None:
+        """Function to reset the data in input widget once user enters his input"""
+        input_widget = self.query_one(Input)
+        input_widget.placeholder = ""
+        input_widget.value = ""
 
 
     
 if __name__ == "__main__":
     app = TextualApp()
     app.run()    
-    
-
-
     

@@ -16,6 +16,7 @@ class MusicPlayer:
         self.current_track: Optional[str] = None
         self.is_playing = False
         self.library_path: Optional[Path] = get_music_folder()
+        self.queue = None
         
     def set_library(self, path: str) -> bool:
         """Set and validate the music library path"""
@@ -91,9 +92,7 @@ class MusicPlayer:
 
     def get_volume(self) -> int:
         """Get current volume"""
-        return self.player.audio_get_volume()
-    
-
+        return self.player.audio_get_volume()           
 
 class TrackInfo:
     """
