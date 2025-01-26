@@ -1,12 +1,11 @@
 ####################
 # Temporary script #
 ####################
-from player import MusicPlayer, TrackInfo
-from utils import get_audio_url, get_song_metadata
-from config import get_music_folder, ConfigManager
+from ethos.player import MusicPlayer, TrackInfo
+from ethos.utils import get_audio_url
+from ethos.config import get_music_folder, ConfigManager
 import time
 import asyncio
-from datetime import timedelta
 
 def test_player():
     """
@@ -76,8 +75,11 @@ def test_player():
     query = str(input("Enter song name"))
     url = get_audio_url(query)
     if url:
+        print(f"{player.get_state()}")
         print(f"Playing {query}...")
         player.play(url)
+        asyncio.sleep(1)
+        print(f"Player state while playing : {player.get_state()}")
         time.sleep(10)
 
         print("Testing volume controls...")
@@ -87,10 +89,14 @@ def test_player():
         time.sleep(2)
 
         print("Testing pause/resume...")
+        print(f"before Paused : {player.get_state()}")
         player.pause()
+        asyncio.sleep(1)
+        print(f"after Paused : {player.get_state()}")
         time.sleep(2)
         player.resume()
-
+        asyncio.sleep(1)
+        print(f"after Resumed: {player.get_state()}")
         time.sleep(10)        
         current_time = TrackInfo.get_current_time(player)
         progress = TrackInfo.get_progress(player)
@@ -98,14 +104,9 @@ def test_player():
         print(f"Current playback time: {current_time} seconds")
         print(f"Playback progress: {progress:.2f}%")
         player.stop()
-
+        print(f"After stopped : {player.get_state()}")
+        print(type(player.get_state()))
         # Test get_song_metadata function
-        print("\nTesting get_song_metadata function...") # Took 8 sec.
-        start_time = time.monotonic()
-        metadata =asyncio.run(get_song_metadata(query))
-        end_time = time.monotonic()
-        print(f"you were playing: {metadata}")
-        print( timedelta(seconds=end_time - start_time))
 
 if __name__ == "__main__":
     test_player()

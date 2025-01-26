@@ -106,7 +106,7 @@ class Format:
         
         command_type, value = parts
     
-        if command_type == '/play':
+        if command_type == '/play' or command_type == '/queue-add' or command_type == '/queue-remove':
             return value
         elif command_type == '/volume':
             try:
@@ -115,3 +115,32 @@ class Format:
                 raise ValueError("Volume must be a number")
         else:
             raise ValueError("Unknown command")
+        
+    
+    @staticmethod
+    def extract_song_and_artist(text: str) -> tuple[str, str]:
+        """
+        Extracts the song name and artist name from the text in the format:
+        <Song No.>.<Song name> by <Artist Name>
+        
+        Args:
+            text (str): The input text.
+            
+        Returns:
+            tuple[str, str]: A tuple containing the song name and artist name.
+        """
+        import re
+        pattern = r'^\d+\.\s*(.+?)\s+by\s+(.+)$'
+        match = re.match(pattern, text)
+        if match:
+            song_name = match.group(1)
+            artist_name = match.group(2)
+            return song_name, artist_name
+        else:
+            raise ValueError("Input text is not in the expected format.")
+
+    @staticmethod
+    def clean_hashtag(text: str) -> str:
+        """Removes the entry number from the track name"""
+        import re
+        return re.sub(r'^(\d+\. )', r'', text)

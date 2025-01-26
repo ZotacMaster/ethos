@@ -3,8 +3,6 @@ import json
 from pathlib import Path
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
-import logging
-logger = logging.getLogger(__name__)
 
 class SpotifyImporter:
     """
