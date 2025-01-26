@@ -5,7 +5,7 @@ from textual import work
 from ui.rich_layout import RichLayout
 from player import MusicPlayer, TrackInfo
 from tools import helper
-from utils import fetch_tracks_list, get_audio_url, fetch_recents, add_track_to_recents
+from utils import fetch_tracks_list, get_audio_url, fetch_recents, add_track_to_recents, fetch_tracks_from_playlist, add_track_to_playlist
 import random
 
 class TextualApp(App):
@@ -35,6 +35,7 @@ class TextualApp(App):
     should_play_queue = reactive(False)
     recents = reactive([])
     current_track_duration = reactive("")
+    show_playlists = reactive(False)
 
     def compose(self) -> ComposeResult:
         """Composer function for textual app"""
@@ -65,6 +66,7 @@ class TextualApp(App):
         if event.value:
             if event.value.startswith("/play"):
                 search_track = self.helper.parse_command(event.value)
+                layout_widget.update_log("Searching for tracks")
                 self.tracks_list = await fetch_tracks_list(search_track)
                 if self.tracks_list:
                     layout_widget.update_dashboard(self.tracks_list, "Type track no. to be played :-")
@@ -75,6 +77,7 @@ class TextualApp(App):
                 self.should_play_queue = False
                 self.track_to_play = self.tracks_list[int(event.value)-1]
                 self.handle_play(self.track_to_play)
+                layout_widget.update_log("Playing track from search")
                 self.update_input()
 
             if event.value.startswith("/volume"):
@@ -94,13 +97,13 @@ class TextualApp(App):
             if event.value.isdigit() and self.select_from_queue:
                 self.should_play_queue = True
                 self.track_to_be_added_to_queue = self.queue_options[int(event.value)-1]
-                self.queue[self.search_track] = self.track_to_be_added_to_queue
+                self.queue[self.search_track] = helper.Format.clean_hashtag(self.track_to_be_added_to_queue)
                 self.update_input()
                 self.search_track=""
 
             if event.value.startswith("/show-queue"):
                 tracks = self.queue.values()
-                data = "\n".join(tracks)
+                data = "\n".join(f"{i+1}. {track}" for i, track in enumerate(tracks))
                 layout_widget.update_dashboard(data, "Current Queue :-")
                 self.update_input()
 
@@ -109,6 +112,19 @@ class TextualApp(App):
 
             if event.value.startswith("/resume"):
                 self.action_resume()
+
+            if event.value.startswith("/qp"):
+                ind = int(helper.Format.parse_command(event.value))
+                keys = list(self.queue.keys())
+                key = keys[ind-1]
+                queue = list(self.queue.values())
+                track = queue[ind-1]
+                del self.queue[key]
+                self.handle_play(track)
+                layout_widget.update_log("Playing track from current queue")
+                self.update_input()
+            
+
             
 
 
@@ -172,6 +188,7 @@ class TextualApp(App):
                 track = tracks[0]
                 del self.queue[key]
                 self.handle_play(track)
+                layout_widget.update_log("Currently playing from queue")
 
   
     
