@@ -311,5 +311,12 @@ def fetch_playlists() -> list[str]:
     """
     Function to fetch all playlists from playlist path
     """
+    playlists = []
     playlist_dir = Path.home() / ".ethos" / "userfiles" / "playlists"
-    
+    files = os.listdir(playlist_dir)
+    for f in files:
+        playlist = os.path.basename(playlist_dir / f).split('.')[0]
+        if playlist:
+            playlists.append(playlist)
+
+    return playlists
