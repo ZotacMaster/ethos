@@ -306,3 +306,10 @@ def add_track_to_playlist(playlist_name: str, track_name: str) -> None:
             json.dump(tracks, file, indent=4)
     except:
         pass
+
+def fetch_playlists() -> list[str]:
+    """
+    Function to fetch all playlists from playlist path
+    """
+    playlist_dir = Path.home() / ".ethos" / "userfiles" / "playlists"
+    
