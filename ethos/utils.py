@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from time import time
 import httpx
 from pathlib import Path
-from tools.helper import Format
+from ethos.tools.helper import Format
 import json
 
 load_dotenv()
@@ -41,8 +41,8 @@ def get_audio_url(query):
         return result['url']
 
 
-CLIENT_ID =  os.getenv("SPOTIFY_CLIENT_ID")
-CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+CLIENT_ID =  os.getenv("SPOTIFY_CLIENT_ID") or 'b7e9610c657f4ea0b0342417f3cd0764'
+CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET") or 'ced93a72d74b4e959dfc25124d7a5331'
 
 
 async def get_spotify_token(client_id, client_secret):
